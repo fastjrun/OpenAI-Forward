@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 
 import orjson
 from rich import print
-from sparrow import relp
+from sparrow import MeasureTime, relp
 
 
 def yaml_dump(data, filepath, rel_path=False, mode="w"):
@@ -61,6 +61,8 @@ def env2list(env_name: str, sep=" "):
 
 
 def get_matches(messages: List[Dict], assistant: List[Dict]):
+    mt = MeasureTime()
+    mt.start()
     msg_len, ass_len = len(messages), len(assistant)
     if msg_len != ass_len:
         print(f"message({msg_len}) 与 assistant({ass_len}) 长度不匹配")
@@ -69,14 +71,15 @@ def get_matches(messages: List[Dict], assistant: List[Dict]):
 
     def cvt(msg: dict, ass: dict):
         return {
-            "forwarded-for": msg["forwarded-for"],
-            "model": msg["model"],
-            "messages": msg["messages"],
-            "assistant": ass["assistant"],
+            "datetime": msg.get('datetime'),
+            "forwarded-for": msg.get("forwarded-for"),
+            "model": msg.get("model"),
+            "messages": msg.get("messages"),
+            "assistant": ass.get("assistant"),
         }
 
     for idx_msg in range(len(messages)):
-        win = min(5, len(messages) - 1)
+        win = min(max(abs(ass_len - msg_len), 16), len(messages) - 1)
         range_list = [idx_msg + (i + 1) // 2 * (-1) ** (i + 1) for i in range(win)]
         # range_list = [idx_msg + 0, idx_msg + 1, idx_msg - 1, idx_msg + 2, idx_msg - 2, ...]
         for idx_ass in range_list:
@@ -96,6 +99,7 @@ def get_matches(messages: List[Dict], assistant: List[Dict]):
     ref_len = max(msg_len, ass_len)
     if len(matches) != ref_len:
         print(f"存在{ref_len-len(matches)}条未匹配数据")
+    mt.show_interval("计算耗时：")
     return matches
 
 
