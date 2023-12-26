@@ -1,5 +1,5 @@
-__version__ = "0.2.4"
+__version__ = "0.6.7"
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv('.env', override=False)

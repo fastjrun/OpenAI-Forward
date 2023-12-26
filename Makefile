@@ -1,21 +1,31 @@
-.PHONY: start build push run down test twine log pull
+.PHONY: monitor start build push run down test twine log pull
 
 image := "beidongjiedeguang/openai-forward:latest"
 container := "openai-forward-container"
 compose_path := "docker-compose.yaml"
 
+monitor:
+	@./scripts/ai-forward-monitor.sh
+
+#stop-monitor:
+#	@pkill -f ai-forward-monitor.sh
+#	@pkill aifd
+
 start:
-	docker run -d \
+	@docker run -d \
+	--restart=unless-stopped \
     --name $(container) \
     --env-file .env \
-    -p 27001:8000 \
+    -p 8000:8000 \
     -v $(shell pwd)/Log:/home/openai-forward/Log \
+	-v $(shell pwd)/CACHE_LMDB:/home/openai-forward/CACHE_LMDB \
+	-v $(shell pwd)/CACHE_LEVELDB:/home/openai-forward/CACHE_LEVELDB \
     -v $(shell pwd)/openai_forward:/home/openai-forward/openai_forward \
-    $(image)
-
+    $(image) --port=8000 --workers=2
+	@make log
 
 exec:
-	docker exec -it $(container) bash
+	docker exec -it $(container) sh
 
 log:
 	docker logs -f $(container)

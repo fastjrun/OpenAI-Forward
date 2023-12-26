@@ -12,9 +12,20 @@ ssl/
 chat.yaml
 chat_*.yaml
 
+config.toml
+config_parser.py
+
+har/
 Log/
 Log-caloi-top/
 dist/
+CACHE_DB/
+CACHE_LMDB/
+CACHE_ROCKSDB/
+CACHE_LEVELDB/
+
+.run/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

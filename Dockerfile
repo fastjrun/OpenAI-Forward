@@ -10,17 +10,12 @@ RUN apk update && \
     mkdir -p /usr/share/zoneinfo/Asia/ && \
     ln -s /etc/localtime /usr/share/zoneinfo/Asia/Shanghai
 
-RUN pip install --no-cache-dir  \
-    "loguru" \
-    "sparrow-python>=0.1.3" \
-    "fastapi" \
-    "uvicorn" \
-    "orjson" \
-    "python-dotenv" \
-    "httpx" \
-    "pytz"
-
 COPY . /home/openai-forward
 WORKDIR /home/openai-forward
+RUN apk add patch g++ libstdc++ leveldb-dev linux-headers --no-cache && \
+    pip install -e . --no-cache-dir && \
+    pip install "lmdb>=1.4.1" "plyvel>=1.5.0" --no-cache-dir && \
+    apk del g++ gcc && rm -rf /var/cache/apk/*
+
 EXPOSE 8000
 ENTRYPOINT ["python", "-m", "openai_forward.__main__", "run"]
