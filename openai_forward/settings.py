@@ -8,72 +8,120 @@ from .console import print_rate_limit_info, print_startup_info
 from .content.config import setting_log
 from .helper import env2dict, env2list, format_route_prefix, get_client_ip
 
-additional_start_info = {}
+openai_additional_start_info = {}
+general_additional_start_info = {}
 
 TIMEOUT = float(os.environ.get("TIMEOUT", "").strip() or "10")
 
 ITER_CHUNK_TYPE = (
     os.environ.get("ITER_CHUNK_TYPE", "").strip() or "efficiency"
-)  # Options: efficiency, precision
+)  # Options: efficiency, one-by-one
 
-CHAT_COMPLETION_ROUTE = (
-    os.environ.get("CHAT_COMPLETION_ROUTE", "").strip() or "/v1/chat/completions"
+CHAT_COMPLETION_ROUTE = "/v1/chat/completions"
+COMPLETION_ROUTE = "/v1/completions"
+EMBEDDING_ROUTE = "/v1/embeddings"
+
+
+CACHE_ROUTE_SET = set(env2dict("CACHE_ROUTES", []))
+
+openai_additional_start_info['cache_routes'] = CACHE_ROUTE_SET
+general_additional_start_info['cache_routes'] = CACHE_ROUTE_SET
+
+FORWARD_CONFIG = env2dict(
+    "FORWARD_CONFIG",
+    [{"base_url": "https://api.openai.com", "route": "/", "type": "openai"}],
 )
 
-COMPLETION_ROUTE = os.environ.get("COMPLETION_ROUTE", "").strip() or "/v1/completions"
-
 ENV_VAR_SEP = ","
-OPENAI_BASE_URL = env2list("OPENAI_BASE_URL", sep=ENV_VAR_SEP) or [
-    "https://api.openai.com"
-]
 
+OPENAI_BASE_URL = [
+    i['base_url'] for i in FORWARD_CONFIG if i and i.get('type') == 'openai'
+]
 OPENAI_ROUTE_PREFIX = [
-    format_route_prefix(i) for i in env2list("OPENAI_ROUTE_PREFIX", sep=ENV_VAR_SEP)
-] or ['/']
-
-EXTRA_BASE_URL = env2list("EXTRA_BASE_URL", sep=ENV_VAR_SEP)
-EXTRA_ROUTE_PREFIX = [
-    format_route_prefix(i) for i in env2list("EXTRA_ROUTE_PREFIX", sep=ENV_VAR_SEP)
+    format_route_prefix(i['route'])
+    for i in FORWARD_CONFIG
+    if i and i.get('type') == 'openai'
 ]
+
+GENERAL_BASE_URL = [
+    i['base_url'] for i in FORWARD_CONFIG if i and i.get('type') == 'general'
+]
+GENERAL_ROUTE_PREFIX = [
+    format_route_prefix(i['route'])
+    for i in FORWARD_CONFIG
+    if i and i.get('type') == 'general'
+]
+
+for openai_route, general_route in zip(OPENAI_ROUTE_PREFIX, GENERAL_ROUTE_PREFIX):
+    assert openai_route not in GENERAL_ROUTE_PREFIX
+    assert general_route not in OPENAI_ROUTE_PREFIX
 
 BENCHMARK_MODE = os.environ.get("BENCHMARK_MODE", "false").strip().lower() == "true"
 if BENCHMARK_MODE:
-    additional_start_info["benchmark_mode"] = BENCHMARK_MODE
+    openai_additional_start_info["benchmark_mode"] = BENCHMARK_MODE
 
-LOG_CHAT = os.environ.get("LOG_CHAT", "False").strip().lower() == "true"
 PRINT_CHAT = os.environ.get("PRINT_CHAT", "False").strip().lower() == "true"
-if LOG_CHAT:
+
+LOG_OPENAI = os.environ.get("LOG_OPENAI", "False").strip().lower() == "true"
+LOG_GENERAL = os.environ.get("LOG_GENERAL", "False").strip().lower() == "true"
+
+CACHE_OPENAI = os.environ.get("CACHE_OPENAI", "False").strip().lower() == "true"
+CACHE_GENERAL = os.environ.get("CACHE_GENERAL", "False").strip().lower() == "true"
+
+openai_additional_start_info["LOG_OPENAI"] = LOG_OPENAI
+general_additional_start_info["LOG_GENERAL"] = LOG_GENERAL
+
+
+if LOG_OPENAI:
     setting_log(openai_route_prefix=OPENAI_ROUTE_PREFIX, print_chat=PRINT_CHAT)
-    additional_start_info["log_chat"] = LOG_CHAT
+
 
 if PRINT_CHAT:
-    additional_start_info["print_chat"] = True
+    openai_additional_start_info["print_chat"] = True
 
-CACHE_CHAT_COMPLETION = (
-    os.environ.get("CACHE_CHAT_COMPLETION", "false").strip().lower() == "true"
-)
+
 LOG_CACHE_DB_INFO = (
     os.environ.get("LOG_CACHE_DB_INFO", "false").strip().lower() == "true"
 )
 CACHE_BACKEND = os.environ.get("CACHE_BACKEND", "MEMORY").strip()
+CACHE_ROOT_PATH_OR_URL = os.environ.get("CACHE_ROOT_PATH_OR_URL", ".").strip()
+
 DEFAULT_REQUEST_CACHING_VALUE = False
-if CACHE_CHAT_COMPLETION:
-    additional_start_info["cache_backend"] = CACHE_BACKEND
+if CACHE_OPENAI:
+    openai_additional_start_info["cache_backend"] = CACHE_BACKEND
+    if not CACHE_BACKEND.lower() == 'memory':
+        openai_additional_start_info["cache_root_path_or_url"] = CACHE_ROOT_PATH_OR_URL
     DEFAULT_REQUEST_CACHING_VALUE = (
         os.environ.get("DEFAULT_REQUEST_CACHING_VALUE", "false").strip().lower()
         == "true"
     )
+    openai_additional_start_info[
+        "default_request_caching_value"
+    ] = DEFAULT_REQUEST_CACHING_VALUE
+
+if CACHE_GENERAL:
+    general_additional_start_info["cache_backend"] = CACHE_BACKEND
+    if not CACHE_BACKEND.lower() == 'memory':
+        general_additional_start_info["cache_root_path_or_url"] = CACHE_ROOT_PATH_OR_URL
+    DEFAULT_REQUEST_CACHING_VALUE = (
+        os.environ.get("DEFAULT_REQUEST_CACHING_VALUE", "false").strip().lower()
+        == "true"
+    )
+    general_additional_start_info[
+        "default_request_caching_value"
+    ] = DEFAULT_REQUEST_CACHING_VALUE
 
 IP_WHITELIST = env2list("IP_WHITELIST", sep=ENV_VAR_SEP)
 IP_BLACKLIST = env2list("IP_BLACKLIST", sep=ENV_VAR_SEP)
 
-OPENAI_API_KEY = env2list("OPENAI_API_KEY", sep=ENV_VAR_SEP)
-FWD_KEY = env2list("FORWARD_KEY", sep=ENV_VAR_SEP)
+OPENAI_API_KEY = env2dict("OPENAI_API_KEY")
+FWD_KEY = env2dict("FORWARD_KEY")
+LEVEL_MODELS = {int(key): value for key, value in env2dict("LEVEL_MODELS").items()}
 
 PROXY = os.environ.get("PROXY", "").strip() or None
 
 if PROXY:
-    additional_start_info["proxy"] = PROXY
+    openai_additional_start_info["proxy"] = PROXY
 
 GLOBAL_RATE_LIMIT = os.environ.get("GLOBAL_RATE_LIMIT", "").strip() or "inf"
 RATE_LIMIT_BACKEND = os.environ.get("REQ_RATE_LIMIT_BACKEND", "").strip() or None
@@ -125,17 +173,16 @@ def show_startup():
             OPENAI_API_KEY,
             FWD_KEY,
             style=next(styles),
-            **additional_start_info,
+            **openai_additional_start_info,
         )
-    for base_url, route_prefix in zip(EXTRA_BASE_URL, EXTRA_ROUTE_PREFIX):
-        extra_additional_start_info = {}
+    for base_url, route_prefix in zip(GENERAL_BASE_URL, GENERAL_ROUTE_PREFIX):
         print_startup_info(
             base_url,
             route_prefix,
             "",
             "",
             style=next(styles),
-            **extra_additional_start_info,
+            **general_additional_start_info,
         )
 
     print_rate_limit_info(

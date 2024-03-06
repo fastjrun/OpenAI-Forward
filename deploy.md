@@ -7,7 +7,7 @@
 <div align="center">
 
 一键部署至render   
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/beidongjiedeguang/openai-forward)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/KenyonY/openai-forward)
 
 
 
@@ -25,6 +25,12 @@
 **一键免费云平台部署**
 
 1. [Render一键部署](deploy.md#render-一键部署)
+2. 更多部署： https://github.com/KenyonY/openai-forward/blob/0.5.x/deploy.md
+
+**其它反代**  
+[CloudFlare AI Gateway](https://developers.cloudflare.com/ai-gateway/get-started/creating-gateway/)  
+[ChatGPT](https://github.com/pandora-next/deploy)  
+
 
 ---
 ## pip部署
@@ -66,7 +72,7 @@ proxy_buffering off;
 ```
 
 <a>
-   <img src="https://raw.githubusercontent.com/beidongjiedeguang/openai-forward/main/.github/images/separators/aqua.png" height=8px width="100%">
+   <img src="https://raw.githubusercontent.com/KenyonY/openai-forward/main/.github/images/separators/aqua.png" height=8px width="100%">
 </a>
 
 ## Docker部署
@@ -75,10 +81,15 @@ proxy_buffering off;
 docker run -d -p 8000:8000 beidongjiedeguang/openai-forward:latest 
 ```
 
+如果指定 `.env` 环境变量则：
+
+```bash
+docker run --env-file .env -d -p 8000:8000 beidongjiedeguang/openai-forward:latest 
+```
+
 将映射宿主机的8000端口，通过`http://{ip}:8000`访问服务。  
 容器内日志路径为`/home/openai-forward/Log/`, 可在启动时将其映射出来。  
 
-注：同样可以在启动命令中通过-e传入环境变量OPENAI_API_KEY=sk-xxx作为默认api key  
 启用SSL同上.
 环境变量配置见[环境变量配置](README.md#配置)
 
@@ -86,7 +97,7 @@ docker run -d -p 8000:8000 beidongjiedeguang/openai-forward:latest
 ## 源码部署
 
 ```bash
-git clone https://github.com/beidongjiedeguang/openai-forward.git --depth=1
+git clone https://github.com/KenyonY/openai-forward.git --depth=1
 cd openai-forward
 
 pip install -e .
@@ -96,11 +107,11 @@ aifd run
 
 
 <a>
-   <img src="https://raw.githubusercontent.com/beidongjiedeguang/openai-forward/main/.github/images/separators/aqua.png" height=8px width="100%">
+   <img src="https://raw.githubusercontent.com/KenyonY/openai-forward/main/.github/images/separators/aqua.png" height=8px width="100%">
 </a>
 
 ## Render 一键部署
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/beidongjiedeguang/openai-forward)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/KenyonY/openai-forward)
 
 Render应该算是所有部署中最简易的一种, 并且它生成的域名国内可以直接访问！
 
